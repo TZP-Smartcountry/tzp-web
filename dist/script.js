@@ -395,7 +395,7 @@ function localizeParkingAreaType(pAreaType) {
         ON_STREET: "Straßenrand",
         PRIVATE: "Privat",
         PARKINGAREA: "Ausgewiesener Parkplatz",
-        CUSTOMER: "Kundenparkplatz",
+        CUSTOMER_PARKING: "Kundenparkplatz",
         UNDERGROUND_PARKING: "Tiefgarage"
     }
 
