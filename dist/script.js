@@ -132,6 +132,7 @@ function getParking(zone) {
     oReq.addEventListener("load", function () {
         parkings = JSON.parse(this.responseText).parkingAreas
         parseParking()
+        getTrend(zone)
     });
     oReq.open("POST", `https://api.aipark.de:443/aipark/v1/getParkingAreasForPosition`)
     oReq.setRequestHeader("apikey", "smart_country_hack")
@@ -163,7 +164,7 @@ function parseParking() {
     var chartData = {
         datasets: [{
             data: data,
-            backgroundColor: ["#23C9FF","#7CC6FE","#CCD5FF", "#E7BBE3", "#C884A6"]
+            backgroundColor: ["#23C9FF", "#7CC6FE", "#CCD5FF", "#E7BBE3", "#C884A6"]
         }],
 
         labels: labels
@@ -195,7 +196,7 @@ function getUtilization(zone) {
     oReq.setRequestHeader("Content-Type", "application/json")
     oReq.send(
         JSON.stringify({
-            timestamp: parseDate(zone.time.startDate, zone.time.startTime),
+            timestamp: parseDate(zone.time.startDate, zone.time.startTime).getTime(),
             position: {
                 type: "Point",
                 coordinates: [zone.location.coordinates[0][1], zone.location.coordinates[0][0]]
@@ -218,6 +219,66 @@ function determineUtilizationDescriptor(occupancy) {
     } else {
         return { label: "hoch", color: "#dc3545" }
     }
+}
+
+function getTrend(zone) {
+    var ctx = document.getElementById("trend-chart").getContext("2d");;
+
+    var times = []
+
+    for (let hour = zone.time.startTime.split(":")[0]; hour <= zone.time.endTime.split(":")[0]; hour++) {
+        times.push(`${hour}:${zone.time.startTime.split(":")[1]}`)
+    }
+
+    var oReq = new XMLHttpRequest()
+    oReq.addEventListener("load", function () {
+        var data = JSON.parse(this.responseText).occupancies.map(function (pArea) {
+            return 100 - pArea.value
+        })
+
+        var gradientStroke = ctx.createLinearGradient(0, 0, 400, 0);
+        data.forEach(function(uti, i) {
+            gradientStroke.addColorStop(1.0 / (data.length -1) * i, determineUtilizationDescriptor(100 - uti).color)
+        })
+
+        var chartData = {
+            labels: times,
+            datasets: [{ label: "Kapazität im Tagesverlauf", data: data, fill: false, borderColor: gradientStroke, lineTension: 0.0 }]
+        }
+        var myDoughnutChart = new Chart(ctx, {
+            type: 'line',
+            data: chartData,
+            options: {
+                legend: {
+                    display: false
+                },
+                animation: {
+                    duration: 0
+                },
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            min:0,
+                            max: 100,
+                            display: false
+                        }
+                    }]
+                }
+            }
+        });
+    });
+    oReq.open("POST", `https://api.aipark.de:443/aipark/v1/getOccupancyForParkingAreas`)
+    oReq.setRequestHeader("apikey", "smart_country_hack")
+    oReq.setRequestHeader("Content-Type", "application/json")
+    oReq.send(
+        JSON.stringify({
+            timeParkingAreaId: times.map(function (time) {
+                return {
+                    parkingAreaId: parkings[0].id,
+                    timestamp: parseDate(zone.time.startDate, time).getTime()
+                }
+            })
+        }))
 }
 
 function setReason(zone) {
