@@ -19,7 +19,7 @@ function login() {
         })
         parseZones()
     });
-    oReq.open("GET", "https://7f8f3173.ngrok.io/api/zones/all")
+    oReq.open("GET", "https://1e31fd74.ngrok.io/api/zones/all")
     oReq.setRequestHeader("user", email)
     oReq.send()
     initMap()
@@ -85,6 +85,7 @@ function initMap() {
 }
 
 function drawZones() {
+    var infowindow = new google.maps.InfoWindow({});
     zones.forEach(function (zone) {
         var line = new google.maps.Polyline({
             path: zone.location.coordinates.map(function (coordinate) {
@@ -96,6 +97,19 @@ function drawZones() {
             strokeWeight: 5
         });
         line.setMap(map)
+          var marker = new google.maps.Marker({
+            position: { lat: zone.location.coordinates[0][0], lng: zone.location.coordinates[0][1] },
+            map: map,
+            title: zone.address.street
+          });
+          google.maps.event.addListener(marker, 'click', function() {
+            infowindow.setContent(`
+            <div>
+                <small>${zone.address.street} ${zone.address.number}</small><br>
+                <small>${new Date(zone.time.startDate).toLocaleDateString('de-DE')} - ${new Date(zone.time.endDate).toLocaleDateString('de-DE')}</small>
+            </div>`);
+            infowindow.open(map, this);
+        });
     })
 }
 
@@ -173,14 +187,18 @@ function getParking(zone) {
 function parseParking() {
     var ctx = document.getElementById("parking-types-chart");
 
-    var labels = parkings.map(function (parking) {
+    var types = parkings.map(function (parking) {
         return parking.parkingAreaType
     }).filter(onlyUnique)
 
-    var data = labels.map(function (parkingAreaType) {
+    var data = types.map(function (parkingAreaType) {
         return count(parkings, function (area) {
             return area.parkingAreaType == parkingAreaType
         })
+    })
+
+    var labels = types.map(function(type){
+        return localizeParkingAreaType(type)
     })
 
     var chartData = {
@@ -347,7 +365,7 @@ function editZoneStatus(zoneId, targetStatus) {
         parseZones()
         zoneClicked(zoneId)
     });
-    oReq.open("POST", `https://7f8f3173.ngrok.io/api/zones/${zoneId}`)
+    oReq.open("POST", `https://1e31fd74.ngrok.io/api/zones/${zoneId}`)
     oReq.setRequestHeader("user", email)
     oReq.setRequestHeader("Content-Type", "application/json")
     oReq.send(
@@ -359,7 +377,7 @@ function editZoneStatus(zoneId, targetStatus) {
 
 function centerMap(zone) {
     map.setCenter({ lat: zone.location.coordinates[0][0], lng: zone.location.coordinates[0][1] })
-    map.setZoom(18)
+    map.setZoom(17)
 }
 
 function onlyUnique(value, index, self) {
@@ -370,4 +388,22 @@ function count(array, predicate) {
     return array.reduce(function (n, el) {
         return n + predicate(el)
     }, 0)
+}
+
+function localizeParkingAreaType(pAreaType) {
+    var locals = {
+        ON_STREET: "Straßenrand",
+        PRIVATE: "Privat",
+        PARKINGAREA: "Ausgewiesener Parkplatz",
+        CUSTOMER: "Kundenparkplatz",
+        UNDERGROUND_PARKING: "Tiefgarage"
+    }
+
+    var result = locals[pAreaType]
+
+    if (result == null) {
+        return pAreaType
+    } else {
+        return result
+    }
 }
