@@ -77,7 +77,7 @@ function drawZones() {
             geodesic: true,
             strokeColor: determineColor(determineStatus(zone.signature)),
             strokeOpacity: 1.0,
-            strokeWeight: 2
+            strokeWeight: 5
         });
         line.setMap(map)
     })
@@ -339,7 +339,7 @@ function editZoneStatus(targetStatus) {
 
 function centerMap(zone) {
     map.setCenter({ lat: zone.location.coordinates[0][0], lng: zone.location.coordinates[0][1] })
-    map.setZoom(16)
+    map.setZoom(18)
 }
 
 function onlyUnique(value, index, self) {
