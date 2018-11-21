@@ -7,7 +7,7 @@
     <script src="main.js"></script>
     <script src="script.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.3/Chart.bundle.js"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCIMvq4Rf90211nRBiy19bkK-6C-xl02Ak"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCQP4_2lgRIpb8nvg0f_qb01oRyw4kZlt8"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="style.css" rel="stylesheet">
     <title>TZP</title>
@@ -43,7 +43,7 @@
                 <div id="map" style="height: 500px">
                 </div>
                 <div class="row">
-                    <div class="col-sm-8">
+                    <div class="col-sm-12">
                         <div class="card mt-3">
                             <div class="card-header">
                                 Situation vor Ort
@@ -66,25 +66,6 @@
                                             <canvas id="trend-chart" height="100px"></canvas>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-4">
-                        <div class="card mt-3">
-                            <div class="card-header">
-                                Antragsbearbeitung
-                            </div>
-                            <div class="card-body">
-                                <p id="details-status"></p>
-                                <input type="hidden" id="details-zone-id"></input>
-                                <div class="form-group">
-                                    <label for="exampleInputEmail1">Begründung:</label>
-                                    <textarea class="form-control" id="reason" placeholder="Ihr Kommentar wird dem Antragsteller übermittelt."></textarea>
-                                </div>
-                                <div id="reason-buttons">
-                                    <button class="btn btn-success" style="width: 48%" onclick="approveZone()">Genehmigen</button>
-                                    <button class="btn btn-danger" style="width: 48%" onclick="denyZone()">Ablehnen</button>
                                 </div>
                             </div>
                         </div>

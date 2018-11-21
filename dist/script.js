@@ -34,25 +34,41 @@ function parseZones() {
                     <div class="col-sm-6">
                         <h5 class="">${zone.address.street} ${zone.address.number}</h5>
                     </div>
-                    <div class="col-sm-6 align-self-center" style="margin-top: 9px">
-                        <p class="text-right">${zone.length} Meter</p>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-6">
-                        <p>${zone.time.startDate}<br>${zone.time.endDate}</p>
-                    </div>
-                    <div class="col-sm-6">
-                        <p class="text-right">${zone.time.startTime}<br>${zone.time.endTime}</p>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-6" style="margin-top: 5px">
-                        <small>${zone.author}</small>
-                    </div>
                     <div class="col-sm-6">
                         <p class="material-icons text-right" style="display:block; color:${determineColor(determineStatus(zone.signature))}">${determineIcon(determineStatus(zone.signature))}</p>
                     </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <p>${zone.address.zip} ${zone.address.city}</p>
+                        <p><b>Beginn:</b> ${new Date(zone.time.startDate).toLocaleDateString('de-DE')}</p>
+                        <p><b>Ende:</b> ${new Date(zone.time.endDate).toLocaleDateString('de-DE')}</p>
+                        <p><b>Täglicher Zeitraum:</b> ${zone.time.startTime} - ${zone.time.endTime} Uhr</p>
+                        <p><b>Grund:</b> ${zone.reason}</p>
+                    </div>
+                </div>
+                <div class="row d-none zone-details" id="details-${zone.id}">
+                    <div class="col-sm-12">
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                Antragsbearbeitung
+                            </div>
+                            <div class="card-body">
+                                <p id="details-status"></p>
+                                <input type="hidden" id="details-zone-id"></input>
+                                <div class="form-group">
+                                    <label for="reason-${zone.id}">Begründung:</label>
+                                    <textarea class="form-control" id="reason-${zone.id}" placeholder="Ihr Kommentar wird dem Antragsteller übermittelt."></textarea>
+                                </div>
+                                <div id="reason-buttons-${zone.id}" class="row">
+                                <div class="col-sm-6"><button class="btn btn-success" style="width: 100%" onclick="approveZone('${zone.id}')">Genehmigen</button></div>
+                                <div class="col-sm-6"><button class="btn btn-danger" style="width: 100%" onclick="denyZone('${zone.id}')">Ablehnen</button></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
                 </div>
             </a>
             `)
@@ -114,16 +130,22 @@ function determineIcon(status) {
 }
 
 function zoneClicked(zoneId) {
+    Array.from(document.getElementById("list").children).forEach(function (listElement) {
+        listElement.classList.remove("active")
+    })
+    Array.from(document.getElementsByClassName("zone-details")).forEach(function (detailsElement) {
+        detailsElement.classList.add("d-none")
+    })
+    
     var zone = zones.find(function (zone) {
         return zone.id == zoneId
     })
+
     centerMap(zone)
     setReason(zone)
     getParking(zone)
     getUtilization(zone)
-    Array.from(document.getElementById("list").children).forEach(function (listElement) {
-        listElement.classList.remove("active")
-    })
+
     document.getElementById(`list-element-${zoneId}`).classList.add("active")
 }
 
@@ -237,8 +259,8 @@ function getTrend(zone) {
         })
 
         var gradientStroke = ctx.createLinearGradient(0, 0, 400, 0);
-        data.forEach(function(uti, i) {
-            gradientStroke.addColorStop(1.0 / (data.length -1) * i, determineUtilizationDescriptor(100 - uti).color)
+        data.forEach(function (uti, i) {
+            gradientStroke.addColorStop(1.0 / (data.length - 1) * i, determineUtilizationDescriptor(100 - uti).color)
         })
 
         var chartData = {
@@ -258,7 +280,7 @@ function getTrend(zone) {
                 scales: {
                     yAxes: [{
                         ticks: {
-                            min:0,
+                            min: 0,
                             max: 100,
                             display: false
                         }
@@ -283,18 +305,17 @@ function getTrend(zone) {
 
 function setReason(zone) {
     var status = determineStatus(zone.signature)
+    document.getElementById(`details`).classList.remove("d-none")
+    document.getElementById(`details-${zone.id}`).classList.remove("d-none")
     if (status == "PENDING") {
-        document.getElementById("details").classList.remove("d-none")
-        document.getElementById("reason-buttons").classList.remove("d-none")
-        document.getElementById("reason").disabled = false
-        document.getElementById("reason").value = ""
-        document.getElementById("details-status").innerText = "Status: In Bearbeitung"
-        document.getElementById("details-zone-id").value = zone.id
+        document.getElementById(`reason-buttons-${zone.id}`).classList.remove("d-none")
+        document.getElementById(`reason-${zone.id}`).disabled = false
+        document.getElementById(`reason-${zone.id}`).value = ""
+        document.getElementById(`reason-${zone.id}`).innerText = "Status: In Bearbeitung"
     } else {
-        document.getElementById("details").classList.remove("d-none")
-        document.getElementById("reason-buttons").classList.add("d-none")
-        document.getElementById("reason").value = zone.signature.details
-        document.getElementById("reason").disabled = true
+        document.getElementById(`reason-buttons-${zone.id}`).classList.add("d-none")
+        document.getElementById(`reason-${zone.id}`).value = zone.signature.details
+        document.getElementById(`reason-${zone.id}`).disabled = true
         if (status == "APPROVED") {
             document.getElementById("details-status").innerText = "Status: Genehmigt"
         } else {
@@ -303,17 +324,16 @@ function setReason(zone) {
     }
 }
 
-function denyZone() {
-    editZoneStatus("DENIED")
+function denyZone(zoneId) {
+    editZoneStatus(zoneId, "DENIED")
 }
 
-function approveZone() {
-    editZoneStatus("APPROVED")
+function approveZone(zoneId) {
+    editZoneStatus(zoneId, "APPROVED")
 }
 
-function editZoneStatus(targetStatus) {
-    var zoneId = document.getElementById("details-zone-id").value
-    var details = document.getElementById("reason").value
+function editZoneStatus(zoneId, targetStatus) {
+    var details = document.getElementById(`reason-${zoneId}`).value
     var zone = zones.find(function (zone) {
         return zone.id == zoneId
     })
