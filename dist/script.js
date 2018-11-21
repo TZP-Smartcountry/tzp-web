@@ -1,6 +1,7 @@
 var email = ""
 var map = ""
 var zones = []
+var parkings = []
 
 function login() {
     email = document.getElementById("inputEmail").value
@@ -119,6 +120,7 @@ function zoneClicked(zoneId) {
     centerMap(zone)
     setReason(zone)
     getParking(zone)
+    getUtilization(zone)
     Array.from(document.getElementById("list").children).forEach(function (listElement) {
         listElement.classList.remove("active")
     })
@@ -126,17 +128,96 @@ function zoneClicked(zoneId) {
 }
 
 function getParking(zone) {
+    var oReq = new XMLHttpRequest()
     oReq.addEventListener("load", function () {
-        console.log(this.responseText)
+        parkings = JSON.parse(this.responseText).parkingAreas
+        parseParking()
     });
     oReq.open("POST", `https://api.aipark.de:443/aipark/v1/getParkingAreasForPosition`)
     oReq.setRequestHeader("apikey", "smart_country_hack")
     oReq.setRequestHeader("Content-Type", "application/json")
     oReq.send(
         JSON.stringify({
-            filter: ["NOT_PRIVATE"]],
-            details: details
+            filters: [],
+            numberOfParkingAreas: 10,
+            position: {
+                type: "Point",
+                coordinates: [zone.location.coordinates[0][1], zone.location.coordinates[0][0]]
+            }
         }))
+}
+
+function parseParking() {
+    var ctx = document.getElementById("parking-types-chart");
+
+    var labels = parkings.map(function (parking) {
+        return parking.parkingAreaType
+    }).filter(onlyUnique)
+
+    var data = labels.map(function (parkingAreaType) {
+        return count(parkings, function (area) {
+            return area.parkingAreaType == parkingAreaType
+        })
+    })
+
+    var chartData = {
+        datasets: [{
+            data: data,
+            backgroundColor: ["#23C9FF","#7CC6FE","#CCD5FF", "#E7BBE3", "#C884A6"]
+        }],
+
+        labels: labels
+    };
+    var myDoughnutChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: chartData,
+        options: {
+            legend: {
+                display: true,
+                position: 'right'
+            },
+            animation: {
+                duration: 0
+            }
+        }
+    });
+}
+
+function getUtilization(zone) {
+    var oReq = new XMLHttpRequest()
+    oReq.addEventListener("load", function () {
+        var uti = determineUtilizationDescriptor(parseInt(JSON.parse(this.responseText).value))
+        document.getElementById("average-uti").innerText = uti.label
+        document.getElementById("average-uti").style.color = uti.color
+    });
+    oReq.open("POST", `https://api.aipark.de:443/aipark/v1/getOccupancyForPosition`)
+    oReq.setRequestHeader("apikey", "smart_country_hack")
+    oReq.setRequestHeader("Content-Type", "application/json")
+    oReq.send(
+        JSON.stringify({
+            timestamp: parseDate(zone.time.startDate, zone.time.startTime),
+            position: {
+                type: "Point",
+                coordinates: [zone.location.coordinates[0][1], zone.location.coordinates[0][0]]
+            }
+        }))
+}
+
+function parseDate(date, time) {
+    var result = new Date(date)
+    result.setHours(time.split(":")[0])
+    result.setMinutes(time.split(":")[1])
+    return result
+}
+
+function determineUtilizationDescriptor(occupancy) {
+    if (occupancy > 85) {
+        return { label: "niedrig", color: "#28a745" }
+    } else if (occupancy > 40) {
+        return { label: "mittel", color: "#ffc107" }
+    } else {
+        return { label: "hoch", color: "#dc3545" }
+    }
 }
 
 function setReason(zone) {
@@ -198,4 +279,14 @@ function editZoneStatus(targetStatus) {
 function centerMap(zone) {
     map.setCenter({ lat: zone.location.coordinates[0][0], lng: zone.location.coordinates[0][1] })
     map.setZoom(16)
+}
+
+function onlyUnique(value, index, self) {
+    return self.indexOf(value) === index;
+}
+
+function count(array, predicate) {
+    return array.reduce(function (n, el) {
+        return n + predicate(el)
+    }, 0)
 }
